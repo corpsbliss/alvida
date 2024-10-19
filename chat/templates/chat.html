@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/chat.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <style>
+        /* Additional CSS to manage layout and scrolling */
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            padding: 10px;
+        }
+
+        .user-list {
+            width: 20%;
+            background-color: #f4f4f4;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        .chat-box {
+            width: 80%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 10px;
+        }
+
+        .messages {
+            flex: 1;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow-y: auto;
+            max-height: 70vh;
+        }
+
+        .input-container {
+            display: flex;
+            padding: 10px;
+            background-color: #f9f9f9;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        .send-button {
+            padding: 10px;
+            border: none;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .send-button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="user-list">
+            <h2>Users in Room:</h2>
+            <ul id="users"></ul>
+        </div>
+
+        <div class="chat-box">
+            <div id="messages" class="messages"></div>
+        </div>
+    </div>
+
+    <div class="input-container">
+        <input id="message" class="message-input" placeholder="Enter message">
+        <button id="send" class="send-button">Send</button>
+    </div>
+
+    <script>
+        const socket = io();
+        const room = "{{ room }}";
+        const username = "{{ username }}";
+
+        // Join the room
+        socket.emit('join_room', { room: room, username: username });
+
+        // Load messages from localStorage and display them
+        function loadMessages() {
+            const storedMessages = JSON.parse(localStorage.getItem('chatMessages')) || [];
+            storedMessages.forEach(function(data) {
+                addMessageToChat(data.username, data.message);
+            });
+        }
+
+        // Add a message to the chat area
+        function addMessageToChat(username, message) {
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML += `<div class="message"><strong>${username}:</strong> ${message}</div>`;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight; // Auto-scroll to bottom
+        }
+
+        // Load messages on page load
+        loadMessages();
+
+        socket.on('receive_message', function(data) {
+            addMessageToChat(data.username, data.message);
+            // Store the message in localStorage
+            storeMessage(data.username, data.message);
+
+            // Check if the special message "alvida786" is sent
+            if (data.message === 'alvida786') {
+                socket.emit('trigger_shutdown', { room: room });
+            }
+        });
+
+        socket.on('user_list', function(users) {
+            const usersList = document.getElementById('users');
+            usersList.innerHTML = ''; // Clear the list
+            users.forEach(function(user) {
+                const li = document.createElement('li');
+                li.textContent = user;
+                usersList.appendChild(li);
+            });
+        });
+
+        // Redirect all users if "alvida786" is typed
+        socket.on('redirect', function(data) {
+            window.location.href = data.url;
+        });
+
+        document.getElementById('send').onclick = function() {
+            const messageInput = document.getElementById('message');
+            const message = messageInput.value;
+            if (message) {
+                socket.emit('send_message', { room: room, username: username, message: message });
+                messageInput.value = ''; // Clear input
+            }
+        };
+
+        // Store message in localStorage
+        function storeMessage(username, message) {
+            const messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
+            messages.push({ username: username, message: message });
+            localStorage.setItem('chatMessages', JSON.stringify(messages));
+        }
+    </script>
+</body>
+</html>

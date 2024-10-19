@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WhatsApp Clone</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>Welcome, {{ username }}</h2>
+        <h3>Select or Create a Chat Room</h3>
+        <form action="{{ url_for('chat', room='myroom') }}" method="get">
+            <input type="text" name="room" placeholder="Enter room name" required>
+            <button type="submit">Enter Room</button>
+        </form>
+        <a href="/logout">Logout</a>
+    </div>
+</body>
+</html>
